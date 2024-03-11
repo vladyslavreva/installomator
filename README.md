@@ -1,0 +1,2 @@
+# installomator
+Copy of installomator
