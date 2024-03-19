@@ -1,2 +1,2 @@
 # installomator
-Copy of installomator
+Clone of installomator
