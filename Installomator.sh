@@ -45,7 +45,7 @@ PROMPT_TIMEOUT=86400
 
 # behavior when blocking processes are found
 # BLOCKING_PROCESS_ACTION is ignored if app label uses updateTool
-BLOCKING_PROCESS_ACTION=tell_user
+BLOCKING_PROCESS_ACTION=kill
 # options:
 #   - ignore       continue even when blocking processes are found
 #   - quit         app will be told to quit nicely if running
@@ -98,7 +98,7 @@ LOGO=appstore
 
 
 # App Store apps handling
-IGNORE_APP_STORE_APPS=no
+IGNORE_APP_STORE_APPS=yes
 # options:
 #  - no            If the installed app is from App Store (which include VPP installed apps)
 #                  it will not be touched, no matter its version (default)
@@ -1520,6 +1520,11 @@ valuesfromarguments)
     blockingProcesses=( "1Password Extension Helper" "1Password 7" "1Password (Safari)" "1PasswordNativeMessageHost" "1PasswordSafariAppExtension" )
     #forcefulQuit=YES
     ;;
+falcon)
+	name="Falcon"
+ 	type="pkg"
+    appNewVersion=$( /Applications/Falcon.app/Contents/Resources/falconctl stats 2>/dev/null | grep version | awk '{print $2}')
+   ;; 
 1password8)
     name="1Password"
     type="pkg"
