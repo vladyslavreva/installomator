@@ -1,7 +1,7 @@
 #!/bin/zsh
 label="" # if no label is sent to the script, this will be used
 
-# Installomator
+# 1Installomator
 #
 # Downloads and installs Applications
 # 2020-2021 Installomator
