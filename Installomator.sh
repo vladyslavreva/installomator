@@ -3028,8 +3028,8 @@ displaylinkmanager)
     name="DisplayLink Manager"
     type="pkg"
     #packageID="com.displaylink.displaylinkmanagerapp"
-    downloadURL=https://www.synaptics.com$(redirect=$(curl -sfL https://www.synaptics.com/products/displaylink-graphics/downloads/macos | grep 'class="download-link">Download' | sed -n '2p' | sed 's/.*href="//' | sed 's/".*//') && curl -sfL "https://www.synaptics.com$redirect" | grep 'class="no-link"' | awk -F 'href="' '{print $2}' | awk -F '"' '{print $1}')
-    appNewVersion=$(curl -sfL https://www.synaptics.com/products/displaylink-graphics/downloads/macos | grep "Release:" | sed -n '2p' | cut -d ' ' -f2)
+    downloadURL=https://www.synaptics.com$(redirect=$(curl -sfL https://www.synaptics.com/products/displaylink-graphics/downloads/macos | grep 'class="download-link">Download' | head -1 | sed 's/.*href="//' | sed 's/".*//') && curl -sfL "https://www.synaptics.com$redirect" | grep 'class="no-link"' | awk -F 'href="' '{print $2}' | awk -F '"' '{print $1}')
+    appNewVersion=$(curl -sfL https://www.synaptics.com/products/displaylink-graphics/downloads/macos | grep "Release:" | head -1 | awk '{print $2}')
     expectedTeamID="73YQY62QM3"
     ;;
 displaylinkmanagergraphicsconnectivity)
@@ -5934,9 +5934,9 @@ obs)
     name="OBS"
     type="dmg"
     if [[ $(arch) == "arm64" ]]; then
-        archiveName="obs-studio-[0-9.]*-macos-arm64.dmg"
+        archiveName="OBS-Studio-[0-9.]*-macos-Apple.dmg"
     elif [[ $(arch) == "i386" ]]; then
-        archiveName="obs-studio-[0-9.]*-macos-x86_64.dmg"
+        archiveName="OBS-Studio-[0-9.]*-macos-Intel.dmg"
     fi
     downloadURL=$(downloadURLFromGit obsproject obs-studio )
     appNewVersion=$(versionFromGit obsproject obs-studio )
