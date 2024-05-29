@@ -318,9 +318,11 @@ MDMProfileName=""
 # From the LOGO variable we can know if Addigy og Mosyle is used, so if that variable
 # is either of these, and this variable is empty, then we will auto detect this.
 
-# JAMF API credentials
+# JAMF API credentials and other configurations
 jamfAPIUser=""
 jamfAPIPassword=""
+jamfPolicyInstallerSize="194124652"
+jamfGroupID="441"
 
 # Datadog logging used
 datadogAPI=""
@@ -3715,7 +3717,6 @@ googlechromepkg)
 googlechromepkgcustom)
     name="Google Chrome"
     type="pkg"
-    jamfGroupID=441
     appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" \
         -H "accept: application/xml" \
         -H "Authorization: Bearer $jamfBearerToken" | \
@@ -8512,20 +8513,50 @@ else
     fi
 
     if [[ $DIALOG_CMD_FILE != "" ]]; then
-        # pipe
-        pipe="$tmpDir/downloadpipe"
-        # initialise named pipe for curl output
-        initNamedPipe create $pipe
+        if [[ $jamfDownload != "true" ]]; then
+            # pipe
+            pipe="$tmpDir/downloadpipe"
+            # initialise named pipe for curl output
+            initNamedPipe create $pipe
 
-        # run the pipe read in the background
-        readDownloadPipe $pipe "$DIALOG_CMD_FILE" & downloadPipePID=$!
-        printlog "listening to output of curl with pipe $pipe and command file $DIALOG_CMD_FILE on PID $downloadPipePID" DEBUG
+            # run the pipe read in the background
+            readDownloadPipe $pipe "$DIALOG_CMD_FILE" & downloadPipePID=$!
+            printlog "listening to output of curl with pipe $pipe and command file $DIALOG_CMD_FILE on PID $downloadPipePID" DEBUG
 
-        curlDownload=$(curl -fL -# --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1 | tee $pipe)
-        # because we are tee-ing the output, we want the pipe status of the first command in the chain, not the most recent one
-        curlDownloadStatus=$(echo $pipestatus[1])
-        killProcess $downloadPipePID
+            curlDownload=$(curl -fL -# --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1 | tee $pipe)
+            # because we are tee-ing the output, we want the pipe status of the first command in the chain, not the most recent one
+            curlDownloadStatus=$(echo $pipestatus[1])
+            killProcess $downloadPipePID
+        else
+            printlog "Start jamf policy -event $jamfPolicyEvent" REQ
 
+            # Start jamf policy with cached package
+            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 & )
+            jamfPolicyPID=$!
+            curlDownloadStatus=$( echo $? )
+            
+            # Recieve installer path from jamf policy output
+            archivePath=$( echo "$jamfPolicyOutput" | \
+                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
+                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+            
+            # Processing downloading progress
+            while [[ $progress -lt 100 ]]; do
+                if [[ -e "$archivePath" ]]; then
+                    currentInstallerSize=$( stat -f%z "$archivePath" )
+                    progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
+                    updateDialog $progress "Downloading..."
+                fi
+            done
+
+            printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed ..." REQ
+            wait $jamfPolicyPID
+
+            # Move installer from JAMF waiting room to work directory and rename it
+            if mv "$archivePath" "$tmpDir/$archiveName"; then
+                printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
+            fi
+        fi
     else
         if [[ $jamfDownload != "true" ]]; then
             printlog "No Dialog connection, just download" DEBUG
