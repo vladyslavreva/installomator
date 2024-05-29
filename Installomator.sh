@@ -8529,17 +8529,19 @@ else
             killProcess $downloadPipePID
         else
             printlog "Start jamf policy -event $jamfPolicyEvent" REQ
-
+            jamfPolicyEventOutputFile=$( mktemp /tmp/jamfPolicyEventOutputFile.XXXXX )
             # Start jamf policy with cached package
-            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 & )
+            sudo jamf policy -event "$jamfPolicyEvent" > "$jamfPolicyEventOutputFile" 2>&1 &
             jamfPolicyPID=$!
-            curlDownloadStatus=$( echo $? )
+            curlDownloadStatus=$?
             
             # Recieve installer path from jamf policy output
-            archivePath=$( echo "$jamfPolicyOutput" | \
-                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
-                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-            
+            # archivePath=$( echo "$jamfPolicyOutput" | \
+            #     grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
+            #     awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+            sleep 3
+            archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+
             # Processing downloading progress
             while [[ $progress -lt 100 ]]; do
                 if [[ -e "$archivePath" ]]; then
