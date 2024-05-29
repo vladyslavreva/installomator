@@ -1,7 +1,7 @@
 #!/bin/zsh
 label="" # if no label is sent to the script, this will be used
 
-# 1Installomator
+# Installomator
 #
 # Downloads and installs Applications
 # 2020-2021 Installomator
@@ -16,7 +16,9 @@ label="" # if no label is sent to the script, this will be used
 #
 # with contributions from many others
 
-export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+# export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+export PATH=/usr/local/jamf/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+
 
 # NOTE: adjust these variables:
 
@@ -45,7 +47,7 @@ PROMPT_TIMEOUT=86400
 
 # behavior when blocking processes are found
 # BLOCKING_PROCESS_ACTION is ignored if app label uses updateTool
-BLOCKING_PROCESS_ACTION=kill
+BLOCKING_PROCESS_ACTION=prompt_user
 # options:
 #   - ignore       continue even when blocking processes are found
 #   - quit         app will be told to quit nicely if running
@@ -300,7 +302,7 @@ NOTIFY_DIALOG=0
 #
 ### Logging
 # Logging behavior
-LOGGING="INFO"
+LOGGING="DEBUG"
 # options:
 #   - DEBUG     Everything is logged
 #   - INFO      (default) normal logging level
@@ -315,6 +317,10 @@ MDMProfileName=""
 #   - Mosyle Corporation MDM    Mosyle uses this name on the profile
 # From the LOGO variable we can know if Addigy og Mosyle is used, so if that variable
 # is either of these, and this variable is empty, then we will auto detect this.
+
+# JAMF API credentials
+jamfAPIUser=""
+jamfAPIPassword=""
 
 # Datadog logging used
 datadogAPI=""
@@ -1497,6 +1503,23 @@ if [[ ! -x $DIALOG_CMD ]]; then
     # Swift Dialog is not installed, clear cmd file variable to ignore
     printlog "SwiftDialog is not installed, clear cmd file var"
     DIALOG_CMD_FILE=""
+fi
+
+# MARK: finish reading the arguments:
+while [[ -n $1 ]]; do
+    if [[ $1 =~ ".*\=.*" ]]; then
+        # if an argument contains an = character, send it to eval
+        printlog "setting variable from argument $1" INFO
+        eval $1
+    fi
+    # shift to next argument
+    shift 1
+done
+
+# Receive token from Jamf PRO
+if [[ -n "$jamfAPIUser" && -n "$jamfAPIPassword" ]]; then
+    jamfAuthToken=$( curl -s --request POST --url "${mdmURL%/}/api/v1/auth/token" --header 'accept: application/json' -u "$jamfAPIUser:$jamfAPIPassword" )
+    jamfBearerToken=$( echo "$jamfAuthToken" | awk -F'"' '/"token" :/ { print $4 }' )
 fi
 
 # MARK: labels in case statement
@@ -3688,6 +3711,19 @@ googlechromepkg)
     updateTool="/Library/Google/GoogleSoftwareUpdate/GoogleSoftwareUpdate.bundle/Contents/Resources/GoogleSoftwareUpdateAgent.app/Contents/MacOS/GoogleSoftwareUpdateAgent"
     updateToolArguments=( -runMode oneshot -userInitiated YES )
     updateToolRunAsCurrentUser=1
+    ;;
+googlechromepkgcustom)
+    name="Google Chrome"
+    type="pkg"
+    jamfGroupID=441
+    appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" \
+        -H "accept: application/xml" \
+        -H "Authorization: Bearer $jamfBearerToken" | \
+        xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' -
+    )
+    expectedTeamID="EQHXZ8M8AV"
+    jamfPolicyEvent="update_chrome_test"
+    jamfDownload=true
     ;;
 googledrive|\
 googledrivefilestream)
@@ -8218,17 +8254,6 @@ zulujdk8)
     ;;
 esac
 
-# MARK: finish reading the arguments:
-while [[ -n $1 ]]; do
-    if [[ $1 =~ ".*\=.*" ]]; then
-        # if an argument contains an = character, send it to eval
-        printlog "setting variable from argument $1" INFO
-        eval $1
-    fi
-    # shift to next argument
-    shift 1
-done
-
 # verify we have everything we need
 if [[ -z $name ]]; then
     printlog "need to provide 'name'" ERROR
@@ -8238,7 +8263,7 @@ if [[ -z $type ]]; then
     printlog "need to provide 'type'" ERROR
     exit 1
 fi
-if [[ -z $downloadURL ]]; then
+if [[ -z $downloadURL && $jamfDownload != "true" ]]; then
     printlog "need to provide 'downloadURL'" ERROR
     exit 1
 fi
@@ -8472,7 +8497,11 @@ if [ -f "$archiveName" ] && [ "$DEBUG" -eq 1 ]; then
     printlog "$archiveName exists and DEBUG mode 1 enabled, skipping download"
 else
     # download
-    printlog "Downloading $downloadURL to $archiveName" REQ
+    if [[ $jamfDownload != "true" ]]; then
+        printlog "Downloading $downloadURL to $archiveName" REQ
+    else
+        printlog "Downloading installer from jamf policy (event: $jamfPolicyEvent) to $archiveName" REQ
+    fi
     if [[ $currentUser != "loginwindow" && $NOTIFY == "all" ]]; then
         printlog "notifying"
         if [[ $updateDetected == "YES" ]]; then
@@ -8498,9 +8527,20 @@ else
         killProcess $downloadPipePID
 
     else
-        printlog "No Dialog connection, just download" DEBUG
-        curlDownload=$(curl -v -fsL --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1)
-        curlDownloadStatus=$(echo $?)
+        if [[ $jamfDownload != "true" ]]; then
+            printlog "No Dialog connection, just download" DEBUG
+            curlDownload=$(curl -v -fsL --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1)
+            curlDownloadStatus=$(echo $?)
+        else
+            printlog "Start jamf policy -event $jamfPolicyEvent"
+            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 )
+            wait
+            curlDownloadStatus=$(echo $?)
+            archivePath=$( echo "$jamfPolicyOutput" | \
+                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
+                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+            mv "$archivePath" "$tmpDir/$archiveName"
+        fi
     fi
 
     deduplicatelogs "$curlDownload"
