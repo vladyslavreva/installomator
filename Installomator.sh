@@ -1549,7 +1549,7 @@ falcon)
 	name="Falcon"
  	type="pkg"
     appNewVersion=$( /Applications/Falcon.app/Contents/Resources/falconctl stats 2>/dev/null | grep version | awk '{print $2}')
-   ;; 
+   ;;
 1password8)
     name="1Password"
     type="pkg"
@@ -3685,7 +3685,7 @@ googleadseditor)
 googlechromepkg)
     name="Google Chrome"
     type="pkg"
-    appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" -H "accept: application/xml" -H "Authorization: Bearer $jamfBearerToken" | xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' -)
+    appNewVersion=$( curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" -H "accept: application/xml" -H "Authorization: Bearer $jamfBearerToken" | xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' - )
     expectedTeamID="EQHXZ8M8AV"
     jamfPolicyEvent="update_chrome_test"
     jamfDownload=true
