@@ -8535,22 +8535,11 @@ else
             jamfPolicyPID=$!
             curlDownloadStatus=$?
             
-            # Recieve installer path from jamf policy output
-            # archivePath=$( echo "$jamfPolicyOutput" | \
-            #     grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
-            #     awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-
-            while [[ ! -f "$archivePath" ]]; do
-                archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-                printlog "Wait to archivePath is exist" DEBUG
-                cat "$jamfPolicyEventOutputFile"
-                sleep 0.5
-            done
-
-            printlog "archivePath exist: $archivePath, start processing download progress" DEBUG
-
             # Processing downloading progress
             while [[ $progress -lt 100 ]]; do
+                if [[ ! -e "$archivePath" ]]; then
+                    archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+                fi
                 currentInstallerSize=$( stat -f%z "$archivePath" )
                 printlog "currentInstallerSize: $currentInstallerSize" DEBUG
                 progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
