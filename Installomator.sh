@@ -321,7 +321,6 @@ MDMProfileName=""
 # JAMF API credentials and other configurations
 jamfAPIUser=""
 jamfAPIPassword=""
-jamfPolicyInstallerSize="194124652"
 jamfGroupID="441"
 
 # Datadog logging used
@@ -8528,33 +8527,15 @@ else
             curlDownloadStatus=$(echo $pipestatus[1])
             killProcess $downloadPipePID
         else
-            printlog "Start jamf policy -event $jamfPolicyEvent" REQ
-            jamfPolicyEventOutputFile=$( mktemp /tmp/jamfPolicyEventOutputFile.XXXXX )
-            # Start jamf policy with cached package
-            sudo jamf policy -event "$jamfPolicyEvent" > "$jamfPolicyEventOutputFile" 2>&1 &
-            jamfPolicyPID=$!
-            curlDownloadStatus=$?
-            
-            # Processing downloading progress
-            while [[ $progress -lt 100 ]]; do
-                if [[ ! -e "$archivePath" ]]; then
-                    archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-                fi
-                currentInstallerSize=$( stat -f%z "$archivePath" )
-                printlog "currentInstallerSize: $currentInstallerSize" DEBUG
-                progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
-                printlog "progress: $progress"
-                updateDialog $progress "Downloading..." DEBUG
-            done
-
-            printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed ..." REQ
-            wait $jamfPolicyPID
-
-            # Move installer from JAMF waiting room to work directory and rename it
-            if mv "$archivePath" "$tmpDir/$archiveName"; then
-                printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
-                rm "$jamfPolicyEventOutputFile"
-            fi
+            printlog "Start jamf policy -event $jamfPolicyEvent"
+            updateDialog "wait" "Downloading ..."
+            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 & )
+            wait
+            curlDownloadStatus=$(echo $?)
+            archivePath=$( echo "$jamfPolicyOutput" | \
+                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
+                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+            mv "$archivePath" "$tmpDir/$archiveName"
         fi
     else
         if [[ $jamfDownload != "true" ]]; then
