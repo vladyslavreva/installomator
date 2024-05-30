@@ -8539,16 +8539,17 @@ else
             # archivePath=$( echo "$jamfPolicyOutput" | \
             #     grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
             #     awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-            sleep 3
-            archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+
+            while [[ ! -f "$archivePath" ]]; do
+                archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+                sleep 0.5
+            done
 
             # Processing downloading progress
             while [[ $progress -lt 100 ]]; do
-                if [[ -e "$archivePath" ]]; then
-                    currentInstallerSize=$( stat -f%z "$archivePath" )
-                    progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
-                    updateDialog $progress "Downloading..."
-                fi
+                currentInstallerSize=$( stat -f%z "$archivePath" )
+                progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
+                updateDialog $progress "Downloading..."
             done
 
             printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed ..." REQ
