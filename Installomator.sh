@@ -321,7 +321,8 @@ MDMProfileName=""
 # JAMF API credentials and other configurations
 jamfAPIUser=""
 jamfAPIPassword=""
-jamfGroupID="441"
+jamfGroupID=""
+jamfPolicyInstallerSize=""
 
 # Datadog logging used
 datadogAPI=""
@@ -8495,15 +8496,35 @@ else
             curlDownloadStatus=$(echo $pipestatus[1])
             killProcess $downloadPipePID
         else
-            printlog "Start jamf policy -event $jamfPolicyEvent"
-            updateDialog "wait" "Downloading ..."
-            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 )
-            wait
-            curlDownloadStatus=$(echo $?)
-            archivePath=$( echo "$jamfPolicyOutput" | \
-                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
-                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-            mv "$archivePath" "$tmpDir/$archiveName"
+            jamfPolicyEventOutputFile=$( mktemp /tmp/jamfPolicyEventOutputFile.XXXXX )
+            sudo jamf policy -event "$jamfPolicyEvent" > "$jamfPolicyEventOutputFile" 2>&1 &
+            jamfPolicyPID=$!
+            curlDownloadStatus=$?
+            printlog "Start jamf policy -event $jamfPolicyEvent (PID:$jamfPolicyPID)" REQ
+
+            sleep 1
+            
+            # Processing downloading progress
+            while [[ ! -e "$archivePath" ]]; do
+                if [[ -z "$archivePath" ]]; then
+                    archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+                fi
+                if [[ -z "$downloadPath" ]]; then
+                    downloadPath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Downloads/"$2}')
+                fi
+                currentInstallerSize=$( stat -f%z "$downloadPath" )
+                progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
+                updateDialog $progress "Downloading..."
+            done
+
+            printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed" REQ
+            wait $jamfPolicyPID
+
+            # Move installer from JAMF waiting room to work directory and rename it
+            if mv "$archivePath" "$tmpDir/$archiveName"; then
+                printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
+                rm "$jamfPolicyEventOutputFile"
+            fi
         fi
     else
         if [[ $jamfDownload != "true" ]]; then
