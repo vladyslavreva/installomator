@@ -1,7 +1,6 @@
-googlechromepkgcustom)
+googlechromepkg)
     name="Google Chrome"
     type="pkg"
-    jamfGroupID=441
     appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" \
         -H "accept: application/xml" \
         -H "Authorization: Bearer $jamfBearerToken" | \
