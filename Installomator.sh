@@ -302,7 +302,7 @@ NOTIFY_DIALOG=0
 #
 ### Logging
 # Logging behavior
-LOGGING="DEBUG"
+LOGGING="INFO"
 # options:
 #   - DEBUG     Everything is logged
 #   - INFO      (default) normal logging level
@@ -1510,7 +1510,7 @@ fi
 while [[ -n $1 ]]; do
     if [[ $1 =~ ".*\=.*" ]]; then
         # if an argument contains an = character, send it to eval
-        printlog "setting variable from argument $1" INFO
+        printlog "setting variable from argument $1" DEBUG
         eval $1
     fi
     # shift to next argument
