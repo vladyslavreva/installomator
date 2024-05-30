@@ -8542,14 +8542,20 @@ else
 
             while [[ ! -f "$archivePath" ]]; do
                 archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+                printlog "Wait to archivePath is exist" DEBUG
+                cat "$jamfPolicyEventOutputFile"
                 sleep 0.5
             done
+
+            printlog "archivePath exist: $archivePath, start processing download progress" DEBUG
 
             # Processing downloading progress
             while [[ $progress -lt 100 ]]; do
                 currentInstallerSize=$( stat -f%z "$archivePath" )
+                printlog "currentInstallerSize: $currentInstallerSize" DEBUG
                 progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
-                updateDialog $progress "Downloading..."
+                printlog "progress: $progress"
+                updateDialog $progress "Downloading..." DEBUG
             done
 
             printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed ..." REQ
@@ -8558,6 +8564,7 @@ else
             # Move installer from JAMF waiting room to work directory and rename it
             if mv "$archivePath" "$tmpDir/$archiveName"; then
                 printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
+                rm "$jamfPolicyEventOutputFile"
             fi
         fi
     else
