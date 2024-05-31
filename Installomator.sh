@@ -341,8 +341,8 @@ if [[ $(/usr/bin/arch) == "arm64" ]]; then
         rosetta2=no
     fi
 fi
-VERSION="1.5"
-VERSIONDATE="2024-05-29"
+VERSION="1.6"
+VERSIONDATE="2024-05-31"
 
 # MARK: Functions
 
@@ -3686,7 +3686,7 @@ googlechromepkg)
     jamfGroupID="441"
     appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" -H "accept: application/xml" -H "Authorization: Bearer $jamfBearerToken" | xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' -)
     expectedTeamID="EQHXZ8M8AV"
-    jamfPolicyEvent="update_chrome_prod"
+    jamfPolicyEvent="update_chrome_test"
     jamfPolicyInstallerSize="194124652"
     jamfDownload="true"
     ;;
