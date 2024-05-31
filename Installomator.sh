@@ -318,11 +318,9 @@ MDMProfileName=""
 # From the LOGO variable we can know if Addigy og Mosyle is used, so if that variable
 # is either of these, and this variable is empty, then we will auto detect this.
 
-# JAMF API credentials and other configurations
+# JAMF API credentials
 jamfAPIUser=""
 jamfAPIPassword=""
-jamfGroupID=""
-jamfPolicyInstallerSize=""
 
 # Datadog logging used
 datadogAPI=""
@@ -3685,14 +3683,11 @@ googleadseditor)
 googlechromepkg)
     name="Google Chrome"
     type="pkg"
-    #
-    # Note: this url acknowledges that you accept the terms of service
-    # https://support.google.com/chrome/a/answer/9915669
-    #
-    downloadURL="https://dl.google.com/chrome/mac/stable/accept_tos%3Dhttps%253A%252F%252Fwww.google.com%252Fintl%252Fen_ph%252Fchrome%252Fterms%252F%26_and_accept_tos%3Dhttps%253A%252F%252Fpolicies.google.com%252Fterms/googlechrome.pkg"
+    jamfGroupID="441"
     appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" -H "accept: application/xml" -H "Authorization: Bearer $jamfBearerToken" | xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' -)
     expectedTeamID="EQHXZ8M8AV"
-    jamfPolicyEvent="update_chrome_test"
+    jamfPolicyEvent="update_chrome_prod"
+    jamfPolicyInstallerSize="194124652"
     jamfDownload="true"
     ;;
 googledrive|\
@@ -6095,9 +6090,9 @@ openvpnconnectv3)
 opera)
     name="Opera"
     type="dmg"
-    downloadURL="$(curl -fsIL "$(curl -fs "$(curl -fsL "https://download.opera.com/download/get/?partner=www&opsys=MacOS" | tr '"' "\n" | grep -e "www.opera.com.*thanks.*opera" | sed 's/\&amp\;/\&/g')" | tr '"' "\n" | grep "download.opera.com" | sed 's/\&amp\;/\&/g')" | grep -i "^location" | grep -io "https.*dmg")"
-    appNewVersion="$(printf "$downloadURL" | sed -E 's/https.*\/([0-9.]*)\/mac\/.*/\1/')"
-	versionKey="CFBundleVersion"
+    appNewVersion=$(curl -s "https://get.opera.com/ftp/pub/opera/desktop/" | sed -n 's|.*href="\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)/".*|\1|p' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -n 1)
+    downloadURL="https://get.opera.com/pub/opera/desktop/$appNewVersion/mac/Opera_"$appNewVersion"_Setup.dmg"
+    versionKey="CFBundleVersion"
     expectedTeamID="A2P9LX4JPN"
     ;;
 origin)
