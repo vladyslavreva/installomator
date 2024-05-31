@@ -3568,7 +3568,6 @@ googlechromepkg)
     appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" -H "accept: application/xml" -H "Authorization: Bearer $jamfBearerToken" | xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' -)
     expectedTeamID="EQHXZ8M8AV"
     jamfPolicyEvent="update_chrome_test"
-    jamfPolicyInstallerSize="194124652"
     jamfDownload="true"
     ;;
 googledrive|\
@@ -8351,32 +8350,40 @@ else
             curlDownloadStatus=$(echo $pipestatus[1])
             killProcess $downloadPipePID
         else
-            jamfPolicyEventOutputFile=$( mktemp /tmp/jamfPolicyEventOutputFile.XXXXX )
-            sudo jamf policy -event "$jamfPolicyEvent" > "$jamfPolicyEventOutputFile" 2>&1 &
-            jamfPolicyPID=$!
-            curlDownloadStatus=$?
-            printlog "Start jamf policy -event $jamfPolicyEvent (PID:$jamfPolicyPID)" REQ
+            # jamfPolicyEventOutputFile=$( mktemp /tmp/jamfPolicyEventOutputFile.XXXXX )
+            # sudo jamf policy -event "$jamfPolicyEvent" > "$jamfPolicyEventOutputFile" 2>&1 &
+            # jamfPolicyPID=$!
+            # curlDownloadStatus=$?
+            # printlog "Start jamf policy -event $jamfPolicyEvent (PID:$jamfPolicyPID)" REQ
 
-            sleep 1
+            # sleep 1
             
-            # Processing downloading progress
-            while [[ ! -e "$archivePath" ]]; do
-                if [[ $progress -ge 100 ]]; then
-                    updateDialog "wait" "Downloading..."
-                    break
-                elif [[ -z "$archivePath" ]]; then
-                    archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-                elif [[ -z "$downloadPath" ]]; then
-                    downloadPath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Downloads/"$2}')
-                fi
-                currentInstallerSize=$( stat -f%z "$downloadPath" )
-                progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
-                updateDialog $progress "Downloading..."
-            done
+            # # Processing downloading progress
+            # while [[ ! -e "$archivePath" ]]; do
+            #     if [[ $progress -ge 100 ]]; then
+            #         updateDialog "wait" "Downloading..."
+            #         break
+            #     elif [[ -z "$archivePath" ]]; then
+            #         archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+            #     elif [[ -z "$downloadPath" ]]; then
+            #         downloadPath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Downloads/"$2}')
+            #     fi
+            #     currentInstallerSize=$( stat -f%z "$downloadPath" )
+            #     progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
+            #     updateDialog $progress "Downloading..."
+            # done
 
-            printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed" REQ
-            wait $jamfPolicyPID
-
+            # printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed" REQ
+            # wait $jamfPolicyPID
+            printlog "Start jamf policy -event $jamfPolicyEvent"
+            updateDialog "wait" "Downloading..."
+            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 )
+            wait
+            curlDownloadStatus=$(echo $?)
+            archivePath=$( echo "$jamfPolicyOutput" | \
+                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
+                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
+            
             # Move installer from JAMF waiting room to work directory and rename it
             if mv "$archivePath" "$tmpDir/$archiveName"; then
                 printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
@@ -8396,7 +8403,12 @@ else
             archivePath=$( echo "$jamfPolicyOutput" | \
                 grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
                 awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-            mv "$archivePath" "$tmpDir/$archiveName"
+            
+            # Move installer from JAMF waiting room to work directory and rename it
+            if mv "$archivePath" "$tmpDir/$archiveName"; then
+                printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
+                rm "$jamfPolicyEventOutputFile"
+            fi
         fi
     fi
 
