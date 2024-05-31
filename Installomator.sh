@@ -8502,10 +8502,12 @@ else
             
             # Processing downloading progress
             while [[ ! -e "$archivePath" ]]; do
-                if [[ -z "$archivePath" ]]; then
+                if [[ $progress -ge 100 ]]; then
+                    updateDialog "wait" "Downloading..."
+                    break
+                elif [[ -z "$archivePath" ]]; then
                     archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-                fi
-                if [[ -z "$downloadPath" ]]; then
+                elif [[ -z "$downloadPath" ]]; then
                     downloadPath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Downloads/"$2}')
                 fi
                 currentInstallerSize=$( stat -f%z "$downloadPath" )
