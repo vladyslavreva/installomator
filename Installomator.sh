@@ -341,8 +341,8 @@ if [[ $(/usr/bin/arch) == "arm64" ]]; then
         rosetta2=no
     fi
 fi
-VERSION="1.6"
-VERSIONDATE="2024-05-31"
+VERSION="1.7"
+VERSIONDATE="2024-06-06"
 
 # MARK: Functions
 
@@ -4422,6 +4422,14 @@ keyboardmaestro)
     expectedTeamID="QMHRBA4LGH"
     blockingProcesses=( "Keyboard Maestro Engine" "Keyboard Maestro" )
     ;;
+keynote)
+    name="Keynote"
+    type="pkg"
+    appNewVersion=$(curl -fs "https://apps.apple.com/us/app/keynote/id409183694" | grep -o 'Version [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?' | head -1 | awk '{print $2}')
+    expectedTeamID="74J34U3R6X"
+    jamfPolicyEvent="keynote_pkg"
+    jamfDownload="true"
+    ;;
 keyshot12)
     name="KeyShot12"
     type="pkg"
@@ -6178,13 +6186,13 @@ popsql)
 postman)
     name="Postman"
     type="zip"
+    curlOptions=( -H "accept-encoding: gzip, deflate, br")
     if [[ $(arch) == "arm64" ]]; then
     	downloadURL="https://dl.pstmn.io/download/latest/osx_arm64"
-		appNewVersion=$(curl -fsL --head "${downloadURL}" | grep "content-disposition:" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
 	elif [[ $(arch) == "i386" ]]; then
 		downloadURL="https://dl.pstmn.io/download/latest/osx_64"
-		appNewVersion=$(curl -fsL --head "${downloadURL}" | grep "content-disposition:" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
 	fi
+	appNewVersion=$(getJSONValue "$(curl -fsL 'https://www.postman.com/mkapi/release.json?t=')" 'notes[0].version')
     expectedTeamID="H7H8Q7M5CK"
     ;;
 powermonitor)
