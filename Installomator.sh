@@ -7206,16 +7206,6 @@ teamviewer)
     appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
     expectedTeamID="H7UGFBUGV6"
     ;;
-teamviewerhost)
-    name="TeamViewerHost"
-    type="pkgInDmg"
-    packageID="com.teamviewer.teamviewerhost"
-    pkgName="Install TeamViewerHost.app/Contents/Resources/Install TeamViewerHost.pkg"
-    downloadURL="https://download.teamviewer.com/download/TeamViewerHost.dmg"
-    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
-    expectedTeamID="H7UGFBUGV6"
-    #blockingProcessesMaxCPU="5" # Future feature
-    ;;
 teamviewerhostcustom)
     name="TeamViewerHost"
     type="pkg"
@@ -7224,26 +7214,6 @@ teamviewerhostcustom)
     archiveName="TeamViewerHost-idc$teamviewerConfigID.pkg"
     downloadURL="https://dl.teamviewer.com/download/version_15x/CustomDesign/Install%20TeamViewerHost-idc$teamviewerConfigID.pkg"
     appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
-    expectedTeamID="H7UGFBUGV6"
-    ;;
-teamviewerqs)
-    # credit: Søren Theilgaard (@theilgaard)
-    name="TeamViewerQS"
-    type="dmg"
-    downloadURL="https://download.teamviewer.com/download/TeamViewerQS.dmg"
-    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
-    appName="TeamViewerQS.app"
-    expectedTeamID="H7UGFBUGV6"
-    ;;
-teamviewerqscustom)
-    name="TeamViewerQS"
-    type="zip"
-    teamviewerCustomDownloadURL="" # https://get.teamviewer.com/your_custom_name_here
-    teamviewerConfigID=$(curl -fs ${teamviewerCustomDownloadURL} -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36' | grep -o 'var configId = ".*"' | awk -F'"' '{ print $2 }')
-    teamviewerVersion=$(curl -fs ${teamviewerCustomDownloadURL} -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36' | grep -o 'var version = ".*"' | awk -F'"' '{ print $2 }')
-    downloadURL=$(curl -fs -X POST --url "https://get.teamviewer.com/api/CustomDesign" --header 'Content-Type: application/json; charset=utf-8' -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36' --data '{ "ConfigId": "'"$teamviewerConfigID"'", "Version": "'"$teamviewerVersion"'", "IsCustomModule": true, "Subdomain": "1", "ConnectionId": "" }' | tr -d '"')
-    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
-    appName="TeamViewerQS.app"
     expectedTeamID="H7UGFBUGV6"
     ;;
 techsmithcapture)
