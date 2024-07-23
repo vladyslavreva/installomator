@@ -7591,14 +7591,10 @@ vivi)
 vlc)
     name="VLC"
     type="dmg"
-    latestVersionURL="https://get.videolan.org/vlc/last/macosx/"
-    archiveName=$(curl -sf "$latestVersionURL" | grep -ioE 'vlc-[0-9]+\.[0-9]+\.[0-9]+-universal\.dmg' | uniq)
-    downloadURL="${latestVersionURL}${archiveName}"
-    appNewVersion=$(awk -F'[-.]' '{print $2"."$3"."$4}' <<< "$archiveName")
-    versionKey="CFBundleShortVersionString"
+    appNewVersion=$(curl -s https://www.videolan.org/vlc/#download | xmllint --html --xpath "//script[contains(text(),'var PLATFORMS')]" - 2>/dev/null | grep -o '"osx":{"name":"macOS[^}]*' | grep -o '"latestVersion":"[^"]*' | sed 's/"latestVersion":"//')
+    downloadURL="https://get.videolan.org/vlc/$appNewVersion/macosx/vlc-$appNewVersion-universal.dmg"
     expectedTeamID="75GAHG3SZQ"
     ;;
-
 vmwarefusion)
     name="VMware Fusion"
     type="dmg"
