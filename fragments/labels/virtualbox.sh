@@ -1,14 +1,12 @@
 virtualbox)
-    # credit: AP Orlebeke (@apizz)
     name="VirtualBox"
     type="pkgInDmg"
     pkgName="VirtualBox.pkg"
+    appNewVersion=$(curl -fs "https://download.virtualbox.org/virtualbox/LATEST.TXT")
     if [[ $(arch) == "arm64" ]]; then
-        downloadURL=$(curl -fsL "https://www.virtualbox.org/wiki/Testbuilds" | grep "macOSArm64.dmg" | xmllint --html --xpath 'string(//a/@href)' -)
-        appNewVersion=$(echo "$downloadURL" | awk -F'[-_]' '{print $2}')
+        downloadURL="https://download.virtualbox.org/virtualbox/${appNewVersion}/$(curl -fs "https://download.virtualbox.org/virtualbox/${appNewVersion}/" | grep "macOSArm64" | cut -d\" -f2)"
     elif [[ $(arch) == "i386" ]]; then
-        downloadURL="https:$(curl -fsL "https://www.oracle.com/virtualization/technologies/vm/downloads/virtualbox-downloads.html" | grep "OSX.dmg" | xmllint --html --xpath 'string(//a/@href)' -)"
-        appNewVersion=$(echo "${downloadURL}" | awk -F '/' '{print $5}')
+        downloadURL="https://download.virtualbox.org/virtualbox/${appNewVersion}/$(curl -fs "https://download.virtualbox.org/virtualbox/${appNewVersion}/" | grep "OSX.dmg" | cut -d\" -f2)"
     fi
     expectedTeamID="VB5E2TV963"
     ;;
