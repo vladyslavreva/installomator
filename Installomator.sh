@@ -1553,7 +1553,7 @@ falcon)
     type="pkg"
     packageID="com.1password.1password"
     downloadURL="https://downloads.1password.com/mac/1Password.pkg"
-    appNewVersion=$(curl -s https://releases.1password.com/mac/ | grep "Updated to" | grep -v "Beta" | awk '{for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+$/) {print $i; exit}}')
+	appNewVersion=$(curl -s https://releases.1password.com/mac/ | awk '/Updated to/ {if ($0 !~ /Beta/) {getline; print; exit}}' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
     # relBuildVer=$(curl -s https://releases.1password.com/mac/ | grep "1Password for Mac" | grep -v Beta | head -n 1 | grep href | cut -d = -f 3 | cut -d / -f 3)
     # appNewVersion=$(curl -s "https://releases.1password.com/mac/$relBuildVer/" | grep "Updated to" | cut -d \> -f 78 | cut -d \  -f 3)
     expectedTeamID="2BUA8C4S2C"
