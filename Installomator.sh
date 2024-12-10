@@ -341,8 +341,8 @@ if [[ $(/usr/bin/arch) == "arm64" ]]; then
         rosetta2=no
     fi
 fi
-VERSION="2.4"
-VERSIONDATE="2024-11-14"
+VERSION="2.5"
+VERSIONDATE="2024-12-10"
 
 # MARK: Functions
 
@@ -1553,12 +1553,10 @@ falcon)
     type="pkg"
     packageID="com.1password.1password"
     downloadURL="https://downloads.1password.com/mac/1Password.pkg"
-	appNewVersion=$(curl -s https://releases.1password.com/mac/ | awk '/Updated to/ {if ($0 !~ /Beta/) {getline; print; exit}}' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-    # relBuildVer=$(curl -s https://releases.1password.com/mac/ | grep "1Password for Mac" | grep -v Beta | head -n 1 | grep href | cut -d = -f 3 | cut -d / -f 3)
-    # appNewVersion=$(curl -s "https://releases.1password.com/mac/$relBuildVer/" | grep "Updated to" | cut -d \> -f 78 | cut -d \  -f 3)
+    relBuildVer=$(curl -s https://releases.1password.com/mac/ | grep "1Password for Mac" | grep -v Beta | head -n 1 | grep href | cut -d = -f 3 | cut -d / -f 3)
+    appNewVersion=$(curl -s "https://releases.1password.com/mac/$relBuildVer/" | grep "c-updates__release" | head -n 1 | awk -F '1Password for Mac |</h6>' '{print $2}')
     expectedTeamID="2BUA8C4S2C"
     blockingProcesses=( "1Password Extension Helper" "1Password 7" "1Password 8" "1Password" "1PasswordNativeMessageHost" "1PasswordSafariAppExtension" )
-    #forcefulQuit=YES
     ;;
 1passwordcli)
     name="1Password CLI"
@@ -5238,16 +5236,20 @@ microsoftonedrivereset)
 microsoftonenote)
     name="Microsoft OneNote"
     type="pkg"
-    downloadURL="https://go.microsoft.com/fwlink/?linkid=820886"
+    versionKey="CFBundleVersion"
+	downloadURL=$(curl -fsSL "https://learn.microsoft.com/en-us/officeupdates/update-history-office-for-mac" | \
+        grep -o 'https://officecdn.microsoft.com[^"]*Microsoft_OneNote_[^"]*\.pkg' | head -n 1)
+	appNewVersion=$(echo "$downloadURL" | grep -oE "Microsoft_OneNote_[0-9]+\.[0-9]+\.[0-9]+" | sed 's/Microsoft_OneNote_//')
+    #downloadURL="https://go.microsoft.com/fwlink/?linkid=820886"
     #appNewVersion=$(curl -fs https://macadmins.software/latest.xml | xpath '//latest/package[id="com.microsoft.onenote.standalone.365"]/cfbundleshortversionstring' 2>/dev/null | sed -E 's/<cfbundleshortversionstring>([0-9.]*)<.*/\1/')
-    appNewVersion=$(curl -fsIL "$downloadURL" | grep -i location: | grep -o "/Microsoft_.*pkg" | cut -d "_" -f 3 | cut -d "." -f 1-2)
+    #appNewVersion=$(curl -fsIL "$downloadURL" | grep -i location: | grep -o "/Microsoft_.*pkg" | cut -d "_" -f 3 | cut -d "." -f 1-2)
     expectedTeamID="UBF8T346G9"
-    if [[ -x "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate" && $INSTALL != "force" && $DEBUG -eq 0 ]]; then
-        printlog "Running msupdate --list"
-        "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate" --list
-    fi
-    updateTool="/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate"
-    updateToolArguments=( --install --apps ONMC2019 )
+    #if [[ -x "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate" && $INSTALL != "force" && $DEBUG -eq 0 ]]; then
+    #    printlog "Running msupdate --list"
+    #    "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate" --list
+    #fi
+    #updateTool="/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate"
+    #updateToolArguments=( --install --apps ONMC2019 )
     ;;
 microsoftonenotereset)
     name="Microsoft OneNote Reset"
