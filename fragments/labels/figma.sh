@@ -1,11 +1,11 @@
 figma)
     name="Figma"
     type="zip"
+    appNewVersion="$(curl -fsSL "https://desktop.figma.com/mac/version.txt")"
     if [[ $(arch) == "arm64" ]]; then
-        downloadURL="https://desktop.figma.com/mac-arm/Figma.zip"
+        downloadURL="https://desktop.figma.com/mac-arm/Figma-${appNewVersion}.zip"
     elif [[ $(arch) == "i386" ]]; then
-        downloadURL="https://desktop.figma.com/mac/Figma.zip"
+        downloadURL="https://desktop.figma.com/mac/Figma-${appNewVersion}.zip"
     fi
-    appNewVersion="$(getJSONValue "$(curl -fs https://desktop.figma.com/mac/RELEASE.json)" "version")"
     expectedTeamID="T8RA8NE3B7"
     ;;
