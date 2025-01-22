@@ -3313,6 +3313,14 @@ exifrenamer)
     appNewVersion=$(curl -fs "https://www.qdev.de/?location=downloads" | grep -A1 -m1 "ExifRenamer" | tail -1 | cut -d ">" -f2 | cut -d " " -f1)
     expectedTeamID="MLF9FE35AM"
     ;;
+expressvpn)
+    name="ExpressVPN"
+    type="pkg"
+    packageID="com.expressvpn.ExpressVPN"
+    downloadURL="https://www.expressvpn.com/clients/latest/mac"
+    appNewVersion="$(curl -fsIL https://www.expressvpn.com/clients/latest/mac | grep -i ^location | sed -n -e 's/^\(.*\)\(_release\)\(.*\)$/\3\2\1/p' | sed -n -e 's/^.*mac_//p')"
+    expectedTeamID="TC292Y5427"
+    ;;
 fantastical)
     # credit: Drew Diver (@grumpydrew on MacAdmins Slack)
     name="Fantastical"
