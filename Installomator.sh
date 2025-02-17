@@ -318,9 +318,8 @@ MDMProfileName=""
 # From the LOGO variable we can know if Addigy og Mosyle is used, so if that variable
 # is either of these, and this variable is empty, then we will auto detect this.
 
-# JAMF API credentials
-jamfAPIUser=""
-jamfAPIPassword=""
+# JAMF token
+jamfBearerToken=""
 
 # Datadog logging used
 datadogAPI=""
@@ -341,8 +340,8 @@ if [[ $(/usr/bin/arch) == "arm64" ]]; then
         rosetta2=no
     fi
 fi
-VERSION="2.5"
-VERSIONDATE="2024-12-10"
+VERSION="2.6"
+VERSIONDATE="2025-02-17"
 
 # MARK: Functions
 
@@ -1515,12 +1514,6 @@ while [[ -n $1 ]]; do
     # shift to next argument
     shift 1
 done
-
-# Receive token from Jamf PRO
-if [[ -n "$jamfAPIUser" && -n "$jamfAPIPassword" ]]; then
-    jamfAuthToken=$( curl -s --request POST --url "${mdmURL%/}/api/v1/auth/token" --header 'accept: application/json' -u "$jamfAPIUser:$jamfAPIPassword" )
-    jamfBearerToken=$( echo "$jamfAuthToken" | awk -F'"' '/"token" :/ { print $4 }' )
-fi
 
 # MARK: labels in case statement
 case $label in
