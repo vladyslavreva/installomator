@@ -133,6 +133,7 @@ REOPEN="yes"
 
 # Only let Installomator return the name of the label
 # RETURN_LABEL_NAME=0
+# RETURN_LABEL_VERSION=1
 # options:
 #   - 1      Installomator will return the name of the label and exit, so last line of
 #            output will be that name. When Installomator is locally installed and we
@@ -1544,11 +1545,9 @@ falcon)
 1password8)
     name="1Password"
     type="pkg"
-    packageID="com.1password.1password"
     downloadURL="https://downloads.1password.com/mac/1Password.pkg"
-    relBuildVer=$(curl -s https://releases.1password.com/mac/ | grep "1Password for Mac" | grep -v Beta | head -n 1 | grep href | cut -d = -f 3 | cut -d / -f 3)
-    appNewVersion=$(curl -s "https://releases.1password.com/mac/$relBuildVer/" | grep "c-updates__release" | head -n 1 | awk -F '1Password for Mac |</h6>' '{print $2}')
-    expectedTeamID="2BUA8C4S2C"
+    appNewVersion=$(curl -s https://releases.1password.com/mac/index.xml | xmllint --xpath '//rss/channel/item/title' - 2>/dev/null | grep -i -v 'beta' | tail -n1 | sed -E 's/.* ([0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?).*/\1/' )
+	expectedTeamID="2BUA8C4S2C"
     blockingProcesses=( "1Password Extension Helper" "1Password 7" "1Password 8" "1Password" "1PasswordNativeMessageHost" "1PasswordSafariAppExtension" )
     ;;
 1passwordcli)
@@ -6983,7 +6982,7 @@ spotify)
     elif [[ $(arch) == i386 ]]; then
         downloadURL="https://download.scdn.co/Spotify.dmg"
     fi
-    # appNewVersion=$(curl -fs https://www.spotify.com/us/opensource/ | cat | grep -o "<td>.*.</td>" | head -1 | cut -d ">" -f2 | cut -d "<" -f1) # does not result in the same version as downloaded
+    appNewVersion=$(curl -fs https://www.spotify.com/us/opensource/ | sed 's/","/\n/g' | grep "clientVersion" | sed -e 's/clientVersion":"\(.*\)"}.*bz2/\1/' | head -1 | awk -F "." '{print$1"."$2"."$3"."$4}')
     expectedTeamID="2FNC3A47ZF"
     ;;
 sqlpropostgres)
@@ -7244,6 +7243,15 @@ teamviewerhostcustom)
     teamviewerConfigID="6f3jm76"
     archiveName="TeamViewerHost-idc$teamviewerConfigID.pkg"
     downloadURL="https://dl.teamviewer.com/download/version_15x/CustomDesign/Install%20TeamViewerHost-idc$teamviewerConfigID.pkg"
+    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
+    expectedTeamID="H7UGFBUGV6"
+    ;;
+teamviewerhost)
+    name="TeamViewerHost"
+    type="pkgInDmg"
+    packageID="com.teamviewer.teamviewerhost"
+    pkgName="Install TeamViewerHost.app/Contents/Resources/Install TeamViewerHost.pkg"
+    downloadURL="https://download.teamviewer.com/download/TeamViewerHost.dmg"
     appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
     expectedTeamID="H7UGFBUGV6"
     ;;
@@ -8104,11 +8112,20 @@ if [[ -z $expectedTeamID ]]; then
     exit 1
 fi
 
+
 # Are we only asked to return label name
 if [[ $RETURN_LABEL_NAME -eq 1 ]]; then
     printlog "Only returning label name." REQ
     printlog "$name"
     echo "$name"
+    exit
+fi
+
+# Are we only asked to return label latest version
+if [[ $RETURN_LABEL_VERSION -eq 1 ]]; then
+    printlog "Only returning label latest version." REQ
+    printlog "$appNewVersion"
+    echo "$appNewVersion"
     exit
 fi
 
