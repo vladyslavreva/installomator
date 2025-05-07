@@ -84,7 +84,7 @@ BLOCKING_PROCESS_ACTION=prompt_user
 
 
 # logo-icon used in dialog boxes if app is blocking
-LOGO=appstore
+LOGO=jamf
 # options:
 #   - appstore      Icon is Apple App Store (default)
 #   - jamf          JAMF Pro
@@ -8178,7 +8178,7 @@ case $LOGO in
         ;;
     jamf)
         # Jamf Pro
-        LOGO="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIcon.icns"
+        LOGO="/Applications/Self Service.app"
         ;;
     mosyleb)
         # Mosyle Business
