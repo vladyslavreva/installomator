@@ -7233,7 +7233,7 @@ teamviewer)
     versionKey="CFBundleShortVersionString"
     pkgName="Install TeamViewer.app/Contents/Resources/Install TeamViewer.pkg"
     downloadURL="https://download.teamviewer.com/download/TeamViewer.dmg"
-    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
+    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/portal/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
     expectedTeamID="H7UGFBUGV6"
     ;;
 teamviewerhostcustom)
@@ -7243,7 +7243,7 @@ teamviewerhostcustom)
     teamviewerConfigID="6f3jm76"
     archiveName="TeamViewerHost-idc$teamviewerConfigID.pkg"
     downloadURL="https://dl.teamviewer.com/download/version_15x/CustomDesign/Install%20TeamViewerHost-idc$teamviewerConfigID.pkg"
-    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
+    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/portal/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
     expectedTeamID="H7UGFBUGV6"
     ;;
 teamviewerhost)
@@ -7252,7 +7252,7 @@ teamviewerhost)
     packageID="com.teamviewer.teamviewerhost"
     pkgName="Install TeamViewerHost.app/Contents/Resources/Install TeamViewerHost.pkg"
     downloadURL="https://download.teamviewer.com/download/TeamViewerHost.dmg"
-    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
+    appNewVersion=$(curl -fs "https://www.teamviewer.com/en/download/portal/macos/" | grep "Current version" | awk -F': ' '{ print $2 }' | sed 's/<[^>]*>//g')
     expectedTeamID="H7UGFBUGV6"
     ;;
 techsmithcapture)
