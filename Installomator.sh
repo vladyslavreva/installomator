@@ -8178,7 +8178,7 @@ case $LOGO in
         ;;
     jamf)
         # Jamf Pro
-        LOGO="/Applications/Self Service.app"
+        LOGO="/Library/Application Support/Dialog/Dialog.png"
         ;;
     mosyleb)
         # Mosyle Business
