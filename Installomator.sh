@@ -1655,9 +1655,9 @@ adobecreativeclouddesktop)
         exit 75
     fi
     if [[ "$(arch)" == "arm64" ]]; then
-        downloadURL=$(curl -fs "https://helpx.adobe.com/download-install/kb/creative-cloud-desktop-app-download.html" | grep -o 'https.*macarm64.*dmg' | head -1 | cut -d '"' -f1)
+        downloadURL=$(curl -fs "https://helpx.adobe.com/download-install/apps/download-install-apps/creative-cloud-apps/download-creative-cloud-desktop-app-using-direct-links.html" | grep -o 'https.*macarm64.*dmg' | head -1 | cut -d '"' -f1)
     else
-        downloadURL=$(curl -fs "https://helpx.adobe.com/download-install/kb/creative-cloud-desktop-app-download.html" | grep -o 'https.*osx10.*dmg' | head -1 | cut -d '"' -f1)
+        downloadURL=$(curl -fs "https://helpx.adobe.com/download-install/apps/download-install-apps/creative-cloud-apps/download-creative-cloud-desktop-app-using-direct-links.html" | grep -o 'https.*osx10.*dmg' | head -1 | cut -d '"' -f1)
     fi
     #appNewVersion=$(curl -fs "https://helpx.adobe.com/creative-cloud/release-note/cc-release-notes.html" | grep "mandatory" | head -1 | grep -o "Version *.* released" | cut -d " " -f2)
     appNewVersion=$(echo $downloadURL | grep -o '[^x]*$' | cut -d '.' -f 1 | sed 's/_/\./g')
@@ -3575,7 +3575,7 @@ googlechromepkg)
     jamfGroupID="441"
     appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" -H "accept: application/xml" -H "Authorization: Bearer $jamfBearerToken" | xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' -)
     expectedTeamID="EQHXZ8M8AV"
-    jamfPolicyEvent="update_chrome_test"
+    jamfPolicyEvent="chrome_cached"
     jamfDownload="true"
     ;;
 googledrive|\
@@ -8376,45 +8376,14 @@ else
             curlDownloadStatus=$(echo $pipestatus[1])
             killProcess $downloadPipePID
         else
-            # jamfPolicyEventOutputFile=$( mktemp /tmp/jamfPolicyEventOutputFile.XXXXX )
-            # sudo jamf policy -event "$jamfPolicyEvent" > "$jamfPolicyEventOutputFile" 2>&1 &
-            # jamfPolicyPID=$!
-            # curlDownloadStatus=$?
-            # printlog "Start jamf policy -event $jamfPolicyEvent (PID:$jamfPolicyPID)" REQ
-
-            # sleep 1
-            
-            # # Processing downloading progress
-            # while [[ ! -e "$archivePath" ]]; do
-            #     if [[ $progress -ge 100 ]]; then
-            #         updateDialog "wait" "Downloading..."
-            #         break
-            #     elif [[ -z "$archivePath" ]]; then
-            #         archivePath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-            #     elif [[ -z "$downloadPath" ]]; then
-            #         downloadPath=$(grep -oE "Downloading [^ ]*\.$type" "$jamfPolicyEventOutputFile" | head -n 1 | awk '{print "/Library/Application Support/JAMF/Downloads/"$2}')
-            #     fi
-            #     currentInstallerSize=$( stat -f%z "$downloadPath" )
-            #     progress=$(( currentInstallerSize * 100 / jamfPolicyInstallerSize ))
-            #     updateDialog $progress "Downloading..."
-            # done
-
-            # printlog "Waiting for policy event \"$jamfPolicyEvent\" (PID: $jamfPolicyPID) to be completed" REQ
-            # wait $jamfPolicyPID
             printlog "Start jamf policy -event $jamfPolicyEvent"
             updateDialog "wait" "Downloading..."
-            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 )
-            wait
-            curlDownloadStatus=$(echo $?)
+            jamf policy -event "$jamfPolicyEvent" 2>&1 && printlog "JAMF policy executed successfully." REQ || printlog "Error while executing JAMF policy." ERR
             archivePath=$( echo "$jamfPolicyOutput" | \
                 grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
                 awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
             
-            # Move installer from JAMF waiting room to work directory and rename it
-            if mv "$archivePath" "$tmpDir/$archiveName"; then
-                printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
-                rm "$jamfPolicyEventOutputFile"
-            fi
+            mv "$archivePath" "$tmpDir/$archiveName" && printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
         fi
     else
         if [[ $jamfDownload != "true" ]]; then
@@ -8424,16 +8393,18 @@ else
         else
             printlog "Start jamf policy -event $jamfPolicyEvent"
             jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 )
-            wait
-            curlDownloadStatus=$(echo $?)
             archivePath=$( echo "$jamfPolicyOutput" | \
                 grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
                 awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-            
-            # Move installer from JAMF waiting room to work directory and rename it
-            if mv "$archivePath" "$tmpDir/$archiveName"; then
-                printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
-                rm "$jamfPolicyEventOutputFile"
+
+            if [[ -f "$archivePath" ]]; then
+                if mv "$archivePath" "$tmpDir/$archiveName"; then
+                    printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
+                else
+                    printlog "Failed to move $archivePath" ERR
+                fi
+            else
+                printlog "Installer file not found at $archivePath" ERR
             fi
         fi
     fi
