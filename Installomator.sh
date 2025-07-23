@@ -37,7 +37,7 @@ NOTIFY=silent
 #   - all          all notifications (great for Self Service installation)
 
 # time in seconds to wait for a prompt to be answered before exiting the script
-PROMPT_TIMEOUT=86400
+PROMPT_TIMEOUT=600
 # Common times translated into seconds
 # 60    =  1 minute
 # 300   =  5 minutes
@@ -341,8 +341,8 @@ if [[ $(/usr/bin/arch) == "arm64" ]]; then
         rosetta2=no
     fi
 fi
-VERSION="2.9"
-VERSIONDATE="2025-07-07"
+VERSION="3.0"
+VERSIONDATE="2025-07-23"
 
 # MARK: Functions
 
