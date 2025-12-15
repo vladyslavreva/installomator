@@ -124,7 +124,6 @@ INSTALL=""
 #                  if it is newer/different in version
 #  - force         Install even if it’s the same version
 
-
 # Re-opening of closed app
 REOPEN="yes"
 # options:
@@ -318,9 +317,6 @@ MDMProfileName=""
 #   - Mosyle Corporation MDM    Mosyle uses this name on the profile
 # From the LOGO variable we can know if Addigy og Mosyle is used, so if that variable
 # is either of these, and this variable is empty, then we will auto detect this.
-
-# JAMF token
-jamfBearerToken=""
 
 # Datadog logging used
 datadogAPI=""
@@ -3580,11 +3576,16 @@ googleadseditor)
 googlechromepkg)
     name="Google Chrome"
     type="pkg"
-    jamfGroupID="441"
-    appNewVersion=$(curl -s -X GET "${mdmURL%/}/JSSResource/computergroups/id/$jamfGroupID" -H "accept: application/xml" -H "Authorization: Bearer $jamfBearerToken" | xmllint --xpath '/computer_group/criteria/criterion[priority="2"]/value/text()' -)
+    #
+    # Note: this url acknowledges that you accept the terms of service
+    # https://support.google.com/chrome/a/answer/9915669
+    #
+    downloadURL="https://dl.google.com/chrome/mac/stable/accept_tos%3Dhttps%253A%252F%252Fwww.google.com%252Fintl%252Fen_ph%252Fchrome%252Fterms%252F%26_and_accept_tos%3Dhttps%253A%252F%252Fpolicies.google.com%252Fterms/googlechrome.pkg"
+    appNewVersion=$(getJSONValue "$(curl -fsL "https://versionhistory.googleapis.com/v1/chrome/platforms/mac/channels/stable/versions/all/releases?filter=fraction%3E0.01,endtime=none&order_by=version%20desc" )" "releases[0].version" )
     expectedTeamID="EQHXZ8M8AV"
-    jamfPolicyEvent="chrome_cached"
-    jamfDownload="true"
+    updateTool="/Library/Google/GoogleSoftwareUpdate/GoogleSoftwareUpdate.bundle/Contents/Resources/GoogleSoftwareUpdateAgent.app/Contents/MacOS/GoogleSoftwareUpdateAgent"
+    updateToolArguments=( -runMode oneshot -userInitiated YES )
+    updateToolRunAsCurrentUser=1
     ;;
 googledrive|\
 googledrivefilestream)
@@ -4437,14 +4438,6 @@ keyboardmaestro)
     appNewVersion=$( curl -fs "https://www.stairways.com/press/rss.xml" | xpath '//rss/channel/item/title[contains(text(), "releases Keyboard Maestro")]' 2>/dev/null | head -1 | sed -E 's/.*releases Keyboard Maestro ([0-9.]*)<.*/\1/g' ) # uses XML, so might be a little more precise/future proof
     expectedTeamID="QMHRBA4LGH"
     blockingProcesses=( "Keyboard Maestro Engine" "Keyboard Maestro" )
-    ;;
-keynote)
-    name="Keynote"
-    type="pkg"
-    appNewVersion=$(curl -fs "https://apps.apple.com/us/app/keynote/id409183694" | grep -o 'Version [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?' | head -1 | awk '{print $2}')
-    expectedTeamID="74J34U3R6X"
-    jamfPolicyEvent="keynote_pkg"
-    jamfDownload="true"
     ;;
 keyshot12)
     name="KeyShot12"
@@ -8088,7 +8081,7 @@ if [[ -z $type ]]; then
     printlog "need to provide 'type'" ERROR
     exit 1
 fi
-if [[ -z $downloadURL && $jamfDownload != "true" ]]; then
+if [[ -z $downloadURL ]]; then
     printlog "need to provide 'downloadURL'" ERROR
     exit 1
 fi
@@ -8331,11 +8324,7 @@ if [ -f "$archiveName" ] && [ "$DEBUG" -eq 1 ]; then
     printlog "$archiveName exists and DEBUG mode 1 enabled, skipping download"
 else
     # download
-    if [[ $jamfDownload != "true" ]]; then
-        printlog "Downloading $downloadURL to $archiveName" REQ
-    else
-        printlog "Downloading installer from jamf policy (event: $jamfPolicyEvent) to $archiveName" REQ
-    fi
+    printlog "Downloading $downloadURL to $archiveName" REQ
     if [[ $currentUser != "loginwindow" && $NOTIFY == "all" ]]; then
         printlog "notifying"
         if [[ $updateDetected == "YES" ]]; then
@@ -8346,57 +8335,34 @@ else
     fi
 
     if [[ $DIALOG_CMD_FILE != "" ]]; then
-        if [[ $jamfDownload != "true" ]]; then
-            # pipe
-            pipe="$tmpDir/downloadpipe"
-            # initialise named pipe for curl output
-            initNamedPipe create $pipe
+        # pipe
+        pipe="$tmpDir/downloadpipe"
+        # initialise named pipe for curl output
+        initNamedPipe create $pipe
 
-            # run the pipe read in the background
-            readDownloadPipe $pipe "$DIALOG_CMD_FILE" & downloadPipePID=$!
-            printlog "listening to output of curl with pipe $pipe and command file $DIALOG_CMD_FILE on PID $downloadPipePID" DEBUG
+        # run the pipe read in the background
+        readDownloadPipe $pipe "$DIALOG_CMD_FILE" & downloadPipePID=$!
+        printlog "listening to output of curl with pipe $pipe and command file $DIALOG_CMD_FILE on PID $downloadPipePID" DEBUG
 
-            curlDownload=$(curl -fL -# --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1 | tee $pipe)
-            # because we are tee-ing the output, we want the pipe status of the first command in the chain, not the most recent one
-            curlDownloadStatus=$(echo $pipestatus[1])
-            killProcess $downloadPipePID
-        else
-            printlog "Start jamf policy -event $jamfPolicyEvent"
-            updateDialog "wait" "Downloading..."
-            jamf policy -event "$jamfPolicyEvent" 2>&1 && printlog "JAMF policy executed successfully." REQ || printlog "Error while executing JAMF policy." ERR
-            archivePath=$( echo "$jamfPolicyOutput" | \
-                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
-                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-            
-            mv "$archivePath" "$tmpDir/$archiveName" && printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
-        fi
+        curlDownload=$(curl -fL -# --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1 | tee $pipe)
+        # because we are tee-ing the output, we want the pipe status of the first command in the chain, not the most recent one
+        curlDownloadStatus=$(echo $pipestatus[1])
+        killProcess $downloadPipePID
+
     else
-        if [[ $jamfDownload != "true" ]]; then
-            printlog "No Dialog connection, just download" DEBUG
-            curlDownload=$(curl -v -fsL --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1)
-            curlDownloadStatus=$(echo $?)
-        else
-            printlog "Start jamf policy -event $jamfPolicyEvent"
-            jamfPolicyOutput=$( sudo jamf policy -event "$jamfPolicyEvent" 2>&1 )
-            archivePath=$( echo "$jamfPolicyOutput" | \
-                grep -oE "Downloading [^ ]*\.$type" | head -n 1 | \
-                awk '{print "/Library/Application Support/JAMF/Waiting Room/"$2}')
-
-            if [[ -f "$archivePath" ]]; then
-                if mv "$archivePath" "$tmpDir/$archiveName"; then
-                    printlog "Moved and renamed $archivePath to $tmpDir/$archiveName." REQ
-                else
-                    printlog "Failed to move $archivePath" ERR
-                fi
-            else
-                printlog "Installer file not found at $archivePath" ERR
-            fi
-        fi
+        printlog "No Dialog connection, just download" DEBUG
+        curlDownload=$(curl -v -fsL --show-error ${curlOptions} "$downloadURL" -o "$archiveName" 2>&1)
+        curlDownloadStatus=$(echo $?)
     fi
 
-    deduplicatelogs "$curlDownload"
-    if [[ $curlDownloadStatus -ne 0 ]]; then
-    #if ! curl --location --fail --silent "$downloadURL" -o "$archiveName"; then
+    # Trying to detect proxy or web filter on downloaded file
+    archiveSHA=$(shasum "$archiveName" | cut -w -f 1)
+    archiveSize=$(du -k "$archiveName" | cut -w -f 1)
+    archiveType=$(file "$archiveName" | cut -d ':' -f2 )
+    printlog "Downloaded $archiveName – Type is $archiveType – SHA is $archiveSHA – Size is $archiveSize kB" INFO
+
+    # Trying to detect download errors, including proxy or web filter blocking on downloaded file
+    if [[ $curlDownloadStatus -ne 0 || $archiveType == *ASCII* ]]; then
         printlog "error downloading $downloadURL" ERROR
         message="$name update/installation failed. This will be logged, so IT can follow up."
         if [[ $currentUser != "loginwindow" && $NOTIFY == "all" ]]; then
@@ -8407,13 +8373,15 @@ else
                 displaynotification "$message" "Error installing $name"
             fi
         fi
-        printlog "File list: $(ls -lh "$archiveName")" ERROR
-        printlog "File type: $(file "$archiveName")" ERROR
-        cleanupAndExit 2 "Error downloading $downloadURL error:\n$logoutput" ERROR
+        if [[ $archiveType == *ASCII* ]]; then
+            firstLines=$(head -c 51170 $archiveName)
+            deduplicatelogs $firstLines
+            cleanupAndExit 2 "File Downloaded is ASCII, we’re probably being blocked by a proxy or filter.  First 5k of file is:\n$logoutput" ERROR
+        else
+            deduplicatelogs "$curlDownload"
+            cleanupAndExit 2 "Error downloading $downloadURL error:\n$logoutput" ERROR
+        fi
     fi
-    printlog "File list: $(ls -lh "$archiveName")" DEBUG
-    printlog "File type: $(file "$archiveName")" DEBUG
-    printlog "curl output was:\n$logoutput" DEBUG
 fi
 
 # MARK: when user is logged in, and app is running, prompt user to quit app
