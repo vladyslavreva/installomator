@@ -1,7 +1,7 @@
 libreoffice)
     name="LibreOffice"
     type="dmg"
-    appNewVersion="$(curl -Ls https://www.libreoffice.org/download/ | grep -o '<option value="latest">LibreOffice [0-9.]*</option>' | grep -o '[0-9][0-9.]*')"
+    appNewVersion="$(curl -Ls https://www.libreoffice.org/download/download-libreoffice/ | xmllint --html --xpath 'string(//p[@class="version_heading"])' - 2>/dev/null | xargs)"
     if [[ $(arch) == "arm64" ]]; then
     	downloadURL="https://download.documentfoundation.org/libreoffice/stable/${appNewVersion}/mac/aarch64/LibreOffice_${appNewVersion}_MacOS_aarch64.dmg"
     elif [[ $(arch) == "i386" ]]; then
