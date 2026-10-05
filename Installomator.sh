@@ -337,8 +337,8 @@ if [[ $(/usr/bin/arch) == "arm64" ]]; then
         rosetta2=no
     fi
 fi
-VERSION="3.10"
-VERSIONDATE="2026-04-24"
+VERSION="3.11"
+VERSIONDATE="2026-10-05"
 
 # MARK: Functions
 
@@ -3431,16 +3431,11 @@ fork)
 foxitpdfreader)
     name="Foxit PDF Reader"
     type="pkg"
-    appNewVersion=$(curl -fsL "https://www.foxit.com/pdf-editor/version-history.html" | xmllint --html --xpath '//div[@id="tab-editor-suite-mac"]//h3/text()' - 2>/dev/null | head -n 1 | sed 's/Version //')
-    majorNew="${appNewVersion%%.*}"
+    #appNewVersion=$(curl -fsL "https://www.foxit.com/pdf-editor/version-history.html" | xmllint --html --xpath '//div[@id="tab-editor-suite-mac"]//h3/text()' - 2>/dev/null | head -n 1 | sed 's/Version //')
+    appNewVersion=$(curl -fsL "https://www.foxit.com/pdf-editor/version-history.html" | grep -oE 'subscription-mac-[0-9]+.{0,40}Version [0-9]+(\.[0-9]+)+' | head -n 1 | grep -oE '[0-9]+(\.[0-9]+)+$')
     versionShort="${appNewVersion%.*}"
     pkgName="${${versionShort//./}%0}"
-    majorCurrent=$([[ -d "/Applications/${name}.app" ]] && defaults read "/Applications/${name}.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null | cut -d. -f1)
-    if [[ "$majorCurrent" == "$majorNew" && -n "$majorCurrent" ]]; then
-        downloadURL="https://cdn01.foxitsoftware.com/pub/foxit/phantomPDF/desktop/mac/${majorNew}.x/${appNewVersion%.*.*}/FoxitPDFReader${pkgName}Upd.L10N.pkg"
-    else
-        downloadURL="https://cdn01.foxitsoftware.com/pub/foxit/phantomPDF/desktop/mac/${majorNew}.x/${appNewVersion%.*.*}/FoxitPDFReader${pkgName}.L10N.Setup.pkg"
-    fi
+    downloadURL="https://cdn01.foxitsoftware.com/pub/foxit/reader/desktop/mac/${versionShort}/FoxitPDFReader${pkgName}.L10N.Setup.pkg"
     expectedTeamID="8GN47HTP75"
     ;;
 franz)
@@ -5357,8 +5352,8 @@ microsoftvisualstudiocode|\
 visualstudiocode)
     name="Visual Studio Code"
     type="zip"
-    appNewVersion=$(curl -fsL -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0.1 Safari/605.1.15' "https://code.visualstudio.com/Updates" | grep "/darwin" | grep -oiE ".com/([^>]+)([^<]+)/darwin" | cut -d "/" -f 2 | sed $'s/[^[:print:]	]//g' | head -1 )
-    downloadURL="https://update.code.visualstudio.com/${appNewVersion}/darwin-universal/stable" # Universal
+    appNewVersion=$(curl -fsL "https://update.code.visualstudio.com/api/releases/stable" | tr ',' '\n' | head -1 | tr -d '["')
+    downloadURL="https://update.code.visualstudio.com/latest/darwin-universal/stable"
     expectedTeamID="UBF8T346G9"
     appName="Visual Studio Code.app"
     blockingProcesses=( Code )
