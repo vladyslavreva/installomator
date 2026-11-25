@@ -1,16 +1,8 @@
 keyaccess)
     name="KeyAccess"
     type="pkg"
-    downloadStore="$(curl -s "http://www.sassafras.com/client-download/" | tr '>' '\n')"
-    downloadURL="$(echo "$downloadStore" | grep "https.*ksp-client.*pkg" | cut -d '"' -f 2)"
-    appNewVersion="$(echo "$downloadStore" | grep "KeyAccess.*for Mac" | cut -d ' ' -f 2)"
+    downloadURL="https://download.sassafras.com/software/release/current/Installers/MacOS/Client/ksp-client.pkg"
+    appNewVersion="$(curl -s "https://solutions.teamdynamix.com/TDClient/1965/Portal/KB/ArticleDet?ID=169236" | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)+' | sort -V | tail -1)"
     expectedTeamID="7Z2KSDFMVY"
-    BLOCKING_PROCESS_ACTION=ignore
-    blockingProcesses=( NONE )
-    # Application is not installed in /Applications
     appName="Library/KeyAccess/KeyAccess.app"
-    # Allowing for setting host as it is the only setting required for a fresh install.
-    if [[ -n $keyaccessHost ]]; then
-        defaults write /Library/Preferences/com.sassafras.KeyAccess host -string "${keyaccessHost}"
-    fi
     ;;

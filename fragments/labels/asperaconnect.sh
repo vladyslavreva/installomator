@@ -1,7 +1,9 @@
-asperaconnect)
-    name="$(curl -fS 'https://www.ibm.com/support/fixcentral/swg/selectFixes?parent=ibm~Other%20software&product=ibm/Other+software/IBM+Aspera+Connect' --data-raw 'showStatus=false' | egrep -o "ibm-aspera-connect_[0-9.]+_macOS_x86_64" | head -n1)"
+asperaconnect|\
+ibmasperaconnect)
+    name="IBM Aspera Connect"
     type="pkg"
-    downloadURL="https://d3gcli72yxqn2z.cloudfront.net/downloads/connect/latest/bin/${name}.pkg"
-    appNewVersion=$(echo "${name}" | sed -E 's/.*_([0-9.]*)_mac.*/\1/')
-    expectedTeamID="RJ747GSBCT"
+    appInfo=$(curl -fsL "https://d3gcli72yxqn2z.cloudfront.net/downloads/connect/latest/versions.js"|sed 's/^window.connectVersions = //')
+    appNewVersion=$(getJSONValue "$appInfo" "entries[1].version"|awk -F. '{print $1"."$2"."$3}')
+    downloadURL="https://d3gcli72yxqn2z.cloudfront.net/downloads/connect/latest/$(getJSONValue "$appInfo" "entries[1].links[1].href")"
+    expectedTeamID="PETKK2G752"
     ;;

@@ -1,7 +1,7 @@
 teamviewerhostcustom)
     name="TeamViewerHost"
     type="pkg"
-    packageID="com.teamviewer.teamviewerhost"
+    # packageID="com.teamviewer.teamviewerhost"
     teamviewerConfigID="6f3jm76"
     archiveName="TeamViewerHost-idc$teamviewerConfigID.pkg"
     downloadURL="https://dl.teamviewer.com/download/version_15x/CustomDesign/Install%20TeamViewerHost-idc$teamviewerConfigID.pkg"

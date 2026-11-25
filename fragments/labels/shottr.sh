@@ -1,7 +1,8 @@
 shottr)
     name="Shottr"
-    type="dmg"
-    appNewVersion=$(curl -fs "https://shottr.cc/newversion.html" | xmllint --html --xpath 'substring-before(substring-after(string(//a[@id="downloadButton"]/small), "v"), ",")' - 2> /dev/null)
-    downloadURL="https://shottr.cc/dl/Shottr-${appNewVersion}.dmg"
+    type="pkg"
+    shottrJSON=$(curl -fs https://shottr.cc/api/version.json)
+    downloadURL=$(getJSONValue "$shottrJSON" "package")
+    appNewVersion=$(getJSONValue "$shottrJSON" "latestVersion")
     expectedTeamID="2Y683PRQWN"
     ;;

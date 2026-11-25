@@ -66,14 +66,12 @@ displaynotification() { # $1: message $2: title
     hubcli="/usr/local/bin/hubcli"
     swiftdialog="/usr/local/bin/dialog"
 
-    if [[ "$($swiftdialog --version | cut -d "." -f1)" -ge 2 && "$NOTIFY_DIALOG" -eq 1 ]]; then
+    if [[ "$NOTIFY_DIALOG" -eq 1 && -x "$swiftdialog" && "$("$swiftdialog" --version | cut -d "." -f1)" -ge 2 ]]; then
         "$swiftdialog" --notification --title "$title" --message "$message"
     elif [[ -x "$manageaction" ]]; then
          "$manageaction" -message "$message" -title "$title" &
     elif [[ -x "$hubcli" ]]; then
          "$hubcli" notify -t "$title" -i "$message" -c "Dismiss"
-    elif [[ "$($swiftdialog --version | cut -d "." -f1)" -ge 2 ]]; then
-         "$swiftdialog" --notification --title "$title" --message "$message"
     else
         runAsUser osascript -e "display notification \"$message\" with title \"$title\""
     fi
@@ -209,11 +207,11 @@ versionFromGit() {
 xpath() {
 	# the xpath tool changes in Big Sur and now requires the `-e` option
 	if [[ $(sw_vers -buildVersion) > "20A" ]]; then
-		/usr/bin/xpath -e $@
+		/usr/bin/xpath -q -e $@
 		# alternative: switch to xmllint (which is not perl)
 		#xmllint --xpath $@ -
 	else
-		/usr/bin/xpath $@
+		/usr/bin/xpath -q $@
 	fi
 }
 
@@ -240,7 +238,7 @@ getAppVersion() {
 
     # pkgs contains a version number, then we don't have to search for an app
     if [[ $packageID != "" ]]; then
-        appversion="$(pkgutil --pkg-info-plist ${packageID} 2>/dev/null | grep -A 1 pkg-version | tail -1 | sed -E 's/.*>([0-9.]*)<.*/\1/g')"
+        appversion="$(pkgutil --pkg-info-plist "${packageID}" 2>/dev/null | plutil -extract pkg-version raw -o - -)"
         if [[ $appversion != "" ]]; then
             printlog "found packageID $packageID installed, version $appversion"
             updateDetected="YES"
@@ -264,11 +262,11 @@ getAppVersion() {
 #            targetDir="/Applications/Utilities"
 #        fi
     else
-    #    applist=$(mdfind "kind:application $appName" -0 )
         printlog "name: $name, appName: $appName"
-        applist=$(mdfind "kind:application AND name:$name" -0 )
+        # mdfind now handling if kind is either Application or App
+        applist=$(mdfind "kMDItemContentType:com.apple.application AND kMDItemFSName:\"$name\"" -0 2>/dev/null)
+#        applist=$(mdfind "kMDItemContentType:com.apple.application AND kMDItemFSName:\"$appName\"" -0 2>/dev/null)
 #        printlog "App(s) found: ${applist}" DEBUG
-#        applist=$(mdfind "kind:application AND name:$appName" -0 )
     fi
     if [[ -z $applist ]]; then
         printlog "No previous app found" WARN
@@ -630,9 +628,9 @@ installFromPKG() {
     spctlStatus=$(echo $?)
     printlog "spctlOut is $spctlOut" DEBUG
 
-    teamID=$(echo $spctlOut | awk -F '(' '/origin=/ {print $2 }' | tr -d '()' )
-    # Apple signed software has no teamID, grab entire origin instead
-    if [[ -z $teamID ]]; then
+    teamID=$(echo $spctlOut | awk -F '(' '/origin=/ {print $NF }' | tr -d '()' )
+    # Apple signed software has no teamID, grab entire text after origin= instead
+    if [[ -z $teamID ]] || [[ $teamID == "origin="* ]]; then
         teamID=$(echo $spctlOut | awk -F '=' '/origin=/ {print $NF }')
     fi
 
@@ -732,7 +730,7 @@ installFromPKG() {
         installFromPKG
     fi
 
-    if [[ $pkginstallstatus -ne 0 ]] ; then
+    if [[ $pkgInstallStatus -ne 0 ]] ; then
     #if ! installer -pkg "$archiveName" -tgt "$targetDir" ; then
         cleanupAndExit 9 "Error installing $archiveName error:\n$logoutput" ERROR
     fi
@@ -834,7 +832,7 @@ installPkgInZip() {
     installFromPKG
 }
 
-installAppInDmgInZip() {
+installItemInDmgInZip() {
     # unzip the archive
     printlog "Unzipping $archiveName"
     tar -xf "$archiveName"
@@ -855,9 +853,21 @@ installAppInDmgInZip() {
         archiveName="$pkgName"
     fi
 
-    # installFromDMG, DMG expected to include an app (will not work with pkg)
-    installFromDMG
+    case $type in
+        appInDmgInZip)
+            # installFromDMG, DMG expected to include an app (will not work with pkg)
+            installFromDMG
+            ;;
+        pkgInDmgInZip)
+            # installPkgInDmg, DMG expected to include an pkg (will not work with app)
+            installPkgInDmg
+            ;;
+        *)
+            cleanupAndExit 99 "Cannot handle type $type" ERROR
+            ;;
+    esac
 }
+
 
 runUpdateTool() {
     printlog "Function called: runUpdateTool"
@@ -923,8 +933,8 @@ finishing() {
 # KeyNote, PowerPoint, Zoom, or Webex.
 # See: https://developer.apple.com/documentation/iokit/iopmlib_h/iopmassertiontypes
 hasDisplaySleepAssertion() {
-    # Get the names of all apps with active display sleep assertions
-    local apps="$(/usr/bin/pmset -g assertions | /usr/bin/awk '/NoDisplaySleepAssertion | PreventUserIdleDisplaySleep/ && match($0,/\(.+\)/) && ! /coreaudiod/ {gsub(/^.*\(/,"",$0); gsub(/\).*$/,"",$0); print};')"
+    # Get the names of all apps with active display sleep assertions (removing non-ASCII characters before awk)
+    local apps="$(/usr/bin/pmset -g assertions | iconv -f UTF-8 -t ASCII//TRANSLIT//IGNORE | /usr/bin/awk '/NoDisplaySleepAssertion | PreventUserIdleDisplaySleep/ && match($0,/\(.+\)/) && ! /coreaudiod/ {gsub(/^.*\(/,"",$0); gsub(/\).*$/,"",$0); print};')"
 
     if [[ ! "${apps}" ]]; then
         # No display sleep assertions detected
@@ -1046,7 +1056,12 @@ updateDialog() {
             echo "progress: $progress" >> $cmd_file
         fi
         if [[ $message != "" ]]; then
-            echo "progresstext: $message" >> $cmd_file
+            if [[ $appNewVersion != "" ]]; then
+                appVersionProgressText=${appNewVersion// /}
+                echo "progresstext: v$appVersionProgressText $message" >> $cmd_file
+            else
+                echo "progresstext: $message" >> $cmd_file
+            fi
         fi
     else
         # list item has a value, so we update the progress and text in the list
@@ -1057,4 +1072,3 @@ updateDialog() {
         fi
     fi
 }
-

@@ -1,8 +1,13 @@
 basecamp3)
-    #credit: @matins
     name="Basecamp 3"
-    type="dmg"
-    downloadURL="https://bc3-desktop.s3.amazonaws.com/mac/basecamp3.dmg"
+    type="zip"
+    if [[ $(/usr/bin/arch) == "arm64" ]]; then
+        downloadURL=$(getJSONValue "$(curl -fsL https://basecamp.com/desktop/mac_arm64/updates.json)" "url")
+        appNewVersion=$(getJSONValue "$(curl -fsL https://basecamp.com/desktop/mac_arm64/updates.json)" "version")
+    else
+        downloadURL=$(getJSONValue "$(curl -fsL https://basecamp.com/desktop/mac/updates.json)" "url")
+        appNewVersion=$(getJSONValue "$(curl -fsL https://basecamp.com/desktop/mac/updates.json)" "version")
+    fi
     expectedTeamID="2WNYUYRS7G"
-    appName="Basecamp 3.app"
+    appName="Basecamp.app"
     ;;
